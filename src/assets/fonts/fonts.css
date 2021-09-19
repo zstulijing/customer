@@ -1,0 +1,12 @@
+@font-face {
+  font-family: "Segoe UI";
+  src: url('./SegoeUI.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+@font-face {
+  font-family: "HGZY_CNKI";
+  src: url('./HGZY_CNKI.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}

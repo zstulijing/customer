@@ -1,0 +1,666 @@
+<template>
+  <div class="sessionList">
+    <div class="search clearfix clear">
+      <input type="text" name="search" placeholder="搜索" @keyup.enter="submit(search)" v-model="search">
+    </div>
+    <div class="list clearfix clear">
+      <div class="button clear">
+        <button @click="choose(0)" :class="isActive(0)">全部会话</button>
+        <button @click="choose(1)" :class="isActive(1)">好友</button>
+        <button @click="choose(2)" :class="isActive(2)">客服</button>
+        <button @click="choose(3)" :class="isActive(3)">群聊</button>
+      </div>
+      <div class="session">
+        <div v-if="show[0]">
+
+        </div>
+        <div v-else-if="show[1]">
+          <div class="briefList" v-for="(item, index) in friendList" :key="index">
+            <div v-if="item != null" class="clear" @click="chatContent(index)">
+
+              <p class="newMessage" v-if="item.data.data.news_length != 0">{{item.data.data.news_length}}</p>
+              <div class="briefList_photo">
+                <img :src="getIMG(item.data.data.profile_img)" alt="">
+              </div>
+              <div class="briefList_talk">
+                <p>{{item.data.data.talk_name}}</p>
+                <p>{{item.data.data.messege | cutMessage}}</p>
+              </div>
+              <div class="briefList_time">
+                <p>{{item.data.data.create_time | showDate}}</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div v-else-if="show[2]">
+          <div class="service">
+            <div class="state clear">
+              <div class="clear">
+                <div :class="onlineState"></div>
+
+                <div>在线状态</div>
+              </div>
+              <div @click="busy()" :class="busyState">忙碌</div>
+              <div @click="spare()" :class="spareState">空闲</div>
+            </div>
+            <div class="briefList" v-for="(item, index) in serviceList" :key="index" @click="chatContent(index)">
+              <div v-if="item != null" class="clear">
+              <p class="newMessage" v-if="item.data.data.news_length != 0">{{item.data.data.news_length}}</p>
+              <div class="briefList_photo">
+                <img :src="getIMG(item.data.data.profile_img)" alt="">
+              </div>
+              <div class="briefList_talk">
+                <p>{{item.data.data.talk_name}}</p>
+                <p>{{item.data.data.messege | cutMessage}}</p>
+              </div>
+              <div class="briefList_time">
+                <p>{{item.data.data.create_time | showDate}}</p>
+              </div>
+            </div>
+            </div>
+          </div>
+        </div>
+        <div v-else-if="show[3]">
+          
+        </div>
+        
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {request} from 'network/request.js'
+
+export default {
+  name: 'SessionList',
+  filters: {
+    showDate(date) {
+      let YMD = date.split('T')[0].split('-')
+  
+      let now = new Date().toLocaleDateString().split('/')
+      let num = 0; 
+      for (let i = 0; i < YMD.length; i++){
+        if (parseInt(YMD[i]) == parseInt(now[i])) {
+          num ++;
+        } 
+      }
+      if (num == YMD.length) {
+        return date.split('T')[1].split(':')[0] + ':' +  date.split('T')[1].split(':')[1]
+      } else if (parseInt(YMD[0]) != parseInt(now[0])){
+        return date.split('T')[0].split('-')[0]
+      } else {
+        return date.split('T')[0].split('-')[1] + '-' + date.split('T')[0].split('-')[2]
+      }
+    },
+    cutMessage(message) {
+      if (message.length >= 13) {
+        return message.substring(0, 13) + '...'
+      } else {
+        return message
+      }
+    }
+  },
+  data() {
+    return {
+      show: [false, true, false, false],
+      search: '',
+
+      friendList: [],
+      friendRelativeId: [],
+
+      serviceList: [],
+      serviceRelativeId: [],
+
+      groupList: [],
+      groupRelativeId: [],
+
+      chooseNow: 1,
+
+      intervalNum: 0,
+      serviceStatus: false,
+    }
+  },
+  computed: {
+    busyState() {
+      if (!this.serviceStatus) {
+        return {busy: true}
+      } else {
+        return {normal: true}
+      }
+    },
+    spareState() {
+      if (this.serviceStatus) {
+        return {spare: true}
+      } else {
+        return {normal: true}
+      }
+    },
+    onlineState() {
+      if (this.serviceStatus) {
+        return {onlineStateSpare: true, onlineStateBusy: false}
+      } else {
+        return {onlineStateBusy: true, onlineStateSpare: false}
+      }
+    }
+  },
+  methods: {
+    submit(search) {
+      
+    },
+    choose(num) {
+      this.chooseNow = num
+      this.$store.commit('setType', num)
+      for (let i = 0; i < this.show.length; i++) {
+        if (i == num) {
+          this.show[i] = true
+        } else {
+          this.show[i] = false
+        }
+      }
+    },
+    isActive(num) {
+      if (num == this.chooseNow) {
+        return {active: true}
+      } else {
+        return {active: false}
+      }
+    },
+    getIMG(filename) {
+      return 'http://l423145x35.oicp.vip/file/' + filename
+    },
+    chatContent(index) {
+      switch (this.chooseNow) {
+        case 0:
+          
+          break;
+
+        case 1: //好友
+          if (this.$route.path.indexOf(this.friendList[index].data.data.link_user) == -1) {
+            this.$store.commit('setOtherPart', {
+              talkName: this.friendList[index].data.data.talk_name,
+              linkUser: this.friendList[index].data.data.link_user,
+              profileImg: this.friendList[index].data.data.profile_img,
+              relative: this.friendRelativeId[index]
+            })
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
+              params: {
+                relative_id: this.friendRelativeId[index],
+                type: 1
+              }
+            }).then(response => {
+              this.friendList[index].data.data.news_length = 0
+              this.$router.push('/chat/' + this.friendList[index].data.data.link_user)
+            })
+          }
+          break;
+
+        case 2: //客服
+          if (this.$route.path.indexOf(this.serviceList[index].data.data.peer_id) == -1) {
+            this.$store.commit('setOtherPart', {
+              talkName: this.serviceList[index].data.data.talk_name,
+              linkUser: this.serviceList[index].data.data.peer_id,
+              profileImg: this.serviceList[index].data.data.profile_img,
+              clientId: this.serviceList[index].data.data.client_id,
+              relative: this.serviceRelativeId[index]
+            })
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
+              params: {
+                relative_id: this.serviceRelativeId[index],
+                type: 3
+              }
+            }).then(response => {
+              this.serviceList[index].data.data.news_length = 0
+              this.$router.push('/chat/' + this.serviceList[index].data.data.peer_id)
+            })
+          }
+          break;
+
+        case 3: //群聊
+          if (this.$route.path.indexOf(this.groupList[index].data.data.peer_id) == -1) {
+            this.$store.commit('setOtherPart', {
+              talkName: this.groupList[index].data.data.talk_name,
+              linkUser: this.groupList[index].data.data.peer_id,
+              profileImg: this.groupList[index].data.data.profile_img,
+              relative: this.groupRelativeId[index]
+            })
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
+              params: {
+                relative_id: this.groupRelativeId[index],
+                type: 2
+              }
+            }).then(response => {
+              this.groupList[index].data.data.news_length = 0
+              this.$router.push('/chat/' + this.groupList[index].data.data.peer_id)
+            })
+          }
+          break;
+      }
+      
+    },
+    friendListUpdate() { //单聊列表更新
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
+        params: {
+          user_id: this.$store.state.profile.id,
+          type: 1
+        }
+      }).then(response => {
+        let all = []
+        for (let i in response.data.data) {
+          this.friendRelativeId[i] = response.data.data[i].imRecenttalk.relative
+          all.push(request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
+            params: {
+              type: 1,
+              relative_id: response.data.data[i].imRecenttalk.relative
+            }
+          }))
+        }
+        Promise.all(all).then(response => {
+          this.friendList = response
+        })
+      })
+    },
+    serviceListUpdate() { //客服列表更新
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
+        params: {
+          user_id: this.$store.state.profile.id,
+          type: 3
+        }
+      }).then(response => {
+        let all = []
+        for (let i in response.data.data) {
+          this.serviceRelativeId[i] = response.data.data[i].imRecenttalk.relative
+          all.push(request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
+            params: {
+              type: 3,
+              relative_id: response.data.data[i].imRecenttalk.relative
+            }
+          }))
+        }
+        Promise.all(all).then(response => {
+          this.serviceList = response
+        })
+      })
+    },
+    spare() {
+      if (!this.serviceStatus) {
+        this.serviceStatus = !this.serviceStatus
+        request({
+          method: 'GET',
+          url: 'http://l423145x35.oicp.vip/bs-company-user/updateById',
+          params: {
+            id: this.$store.state.company.id,
+            serviceStatus: true
+          }
+        })
+      }
+    },
+    busy() {
+      if (this.serviceStatus) {
+        this.serviceStatus = !this.serviceStatus
+        request({
+          method: 'GET',
+          url: 'http://l423145x35.oicp.vip/bs-company-user/updateById',
+          params: {
+            id: this.$store.state.company.id,
+            serviceStatus: false
+          }
+        }).then(response => {
+          
+        })
+      }
+    },
+    getSessionList() { //好友
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
+        params: {
+          user_id: this.$store.state.profile.id,
+          type: 1
+        }
+      }).then(response => {
+        let mesLength = response.data.data.length
+        this.friendList = new Array(mesLength)
+        let all = []
+        for (let i in response.data.data) {
+          this.friendRelativeId[i] = response.data.data[i].imRecenttalk.relative
+          all.push(request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
+            params: {
+              type: 1,
+              relative_id: response.data.data[i].imRecenttalk.relative
+            }
+          }))
+        }
+        Promise.all(all).then(response => {
+          this.friendList = response
+        })
+      })
+    },
+    getServiceList() { //客服
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
+        params: {
+          user_id: this.$store.state.profile.id,
+          type: 3
+        }
+      }).then(response => {
+        let mesLength = response.data.data.length
+        this.serviceList = new Array(mesLength)
+        let all = []
+        for (let i in response.data.data) {
+          this.serviceRelativeId[i] = response.data.data[i].imRecenttalk.relative
+          all.push(request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
+            params: {
+              type: 3,
+              relative_id: response.data.data[i].imRecenttalk.relative
+            }
+          }))
+        }
+        Promise.all(all).then(response => {
+          this.serviceList = response
+        })
+      })
+    },
+    getGroupList() { //群聊
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
+        params: {
+          user_id: this.$store.state.profile.id,
+          type: 2
+        }
+      }).then(response => {
+        let mesLength = response.data.data.length
+        this.serviceList = new Array(mesLength)
+        let all = []
+        for (let i in response.data.data) {
+          this.groupRelativeId[i] = response.data.data[i].imRecenttalk.relative
+          all.push(request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
+            params: {
+              type: 2,
+              relative_id: response.data.data[i].imRecenttalk.relative
+            }
+          }))
+        }
+        Promise.all(all).then(response => {
+          this.groupList = response
+        })
+      })
+    }
+  },
+  mounted () {
+    this.getSessionList()
+    this.getServiceList()
+    this.getGroupList()
+    this.serviceStatus = this.$store.state.company.serviceStatus
+    this.intervalNum = setInterval(() => {
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chatOne/getMesBool',
+        params: {
+          me_id: this.$store.state.profile.id
+        }
+      }).then(response => {
+        if (response.data.data.flag == true) {
+
+          for (let i of response.data.data.relation_list) {
+            if (i == this.$store.state.otherPart.relative) {
+              this.$emit('update', '')
+            }
+          }
+          if (response.data.data.relation_list.length != 0) {
+            this.friendListUpdate()
+          }
+
+          for (let i of response.data.data.service_relation) { //客服
+            if (i == this.$store.state.otherPart.relative) {
+              this.$emit('update', '')
+            }
+          }
+          if (response.data.data.service_relation.length != 0) {
+            this.serviceListUpdate()
+          }
+
+
+
+          for (let i of response.data.data.group_relation) { //群聊
+          
+          }
+
+
+          if (response.data.data.broadcast.length != 0) {
+            this.$emit('prompt', response.data.data.broadcast)
+          }
+        }
+      }).catch((err) => {
+        clearInterval(this.intervalNum)
+      })
+    }, 100);
+  },
+  destroyed() {
+    clearInterval(this.intervalNum)
+  }
+}
+</script>
+
+<style lang="less" scoped>
+
+  @sessionListWidth: 300px;
+
+  .sessionList {
+    overflow: auto;
+    position: absolute;
+    height: calc(100vh - 40px);
+    width: @sessionListWidth;
+    border-right: 1px solid #e7e7e7;
+  }
+  .search {
+    background-color: #FAFAFA;
+    input {
+      display: block;
+      margin: 12px auto;
+      width: 243px;
+      height: 30px;
+      background: #7070702c;
+      border: 0px;
+      border-radius: 10px;
+    }
+    input::-webkit-input-placeholder { 
+      font-family: 'SegoeUI';
+      background-image: url(~assets/img/chat/search.png);
+      background-size: 18px;
+      background-repeat: no-repeat;
+      background-position-x: 80px;
+      background-position-y: 5px;
+      text-align: center;
+      font-size: 16px;
+      color: #707070;
+    }
+    input:-moz-placeholder { 
+      font-family: 'SegoeUI';
+      background-image: url(~assets/img/chat/search.png);
+      background-size: 18px;
+      background-repeat: no-repeat;
+      background-position-x: 80px;
+      background-position-y: 5px;
+      text-align: center;
+      font-size: 16px;
+      color: #707070;
+    } 
+    input::-moz-placeholder { 
+      font-family: 'SegoeUI';
+      background-image: url(~assets/img/chat/search.png);
+      background-size: 18px;
+      background-repeat: no-repeat;
+      background-position-x: 80px;
+      background-position-y: 5px;
+      text-align: center;
+      font-size: 16px;
+      color: #707070;
+    } 
+    input:-ms-input-placeholder { 
+      font-family: 'SegoeUI';
+      background-image: url(~assets/img/chat/search.png);
+      background-size: 18px;
+      background-repeat: no-repeat;
+      background-position-x: 80px;
+      background-position-y: 5px;
+      text-align: center;
+      font-size: 16px;
+      color: #707070;
+    }
+  }
+  .list {
+    border-top: 1px solid #e7e7e7;
+    background-color: #F5F5F5;
+    .button {
+      margin: 8px 10px;
+      button {
+        padding: 4px 10px;
+        float: left;
+        outline: none;
+        border: none;
+        color: #313131;
+        font-size: 16px;
+        border-radius: 10px;
+        background-color: #F5F5F5;
+        margin-right: 7px;
+      }
+      &>button:last-child {
+         margin-right: 0px;
+      }
+    }
+    .session {
+
+      .briefList {
+        &>div:nth-child(1) {
+          position: relative;
+          .newMessage {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            left: 45px;
+            top: 1px;
+            background-color: rgb(250, 81, 81);
+            text-align: center;
+            line-height: 15px;
+            color: #fff;
+            font-size: 10px;
+          }
+        }
+        cursor: pointer;
+        height: 64px;
+        .briefList_photo {
+          float: left;
+          img {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #707070;
+            border-radius: 5px;
+            margin: 10px;
+          }
+        }
+        .briefList_talk {
+          float: left;
+          margin-top: 10px;
+          &>p:nth-child(2) {
+            font-size: 12px;
+            margin-top: 10px;
+          }
+
+        }
+        .briefList_time {
+          float: right;
+          margin: 20px 10px 0 0;
+          color: #707070;
+          font-size: 10px;
+        }
+      }
+    }  
+  }
+  .list .button .active {
+    color: #3875C5;
+    background-color: #3875c53a;
+  }
+  .state {
+    margin: 0 auto;
+    width: 230px;
+    height: 25px;
+    
+    &>div:nth-child(1) {
+      float: left;
+      margin-top: 3px;
+      &>div {
+        float: left;
+      }
+      .onlineStateSpare {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #00A00B;
+        margin: 3px 5px 0 0;
+      }
+      .onlineStateBusy {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: rgb(253, 86, 60);
+        margin: 3px 5px 0 0;
+      }
+    }
+    &>div:nth-child(2) {
+      cursor: pointer;
+      float: right;
+      width: 40px;
+      height: 20px;
+      border-radius: 10px;
+      line-height: 20px;
+      margin-left: 10px;
+      text-align: center;
+    }
+    &>div:nth-child(3) {
+      cursor: pointer;
+      float: right;
+      width: 40px;
+      height: 20px;
+      text-align: center;
+     
+      border-radius: 10px;
+      line-height: 20px;
+    }
+    &>div.normal {
+      color: rgba(0, 0, 0, 0.5);
+    }
+    &>div.busy {
+      background: rgb(253, 86, 60);
+      border: 1px solid rgba(112, 112, 112, 0.2);
+    }
+    &>div.spare {
+      background: #00a00ba8;
+      border: 1px solid rgba(112, 112, 112, 0.2);
+    }
+  }
+</style>

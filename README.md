@@ -1,4 +1,4 @@
-# customer
+# salesman
 
 ## Project setup
 ```
