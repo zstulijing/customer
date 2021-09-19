@@ -54,7 +54,6 @@ export default {
     width: @funBarWidth;
     height: calc(100vh - 40px);
     position: fixed;
-    left: 0;
     z-index: 9;
     background-color: #3875C5;
   }

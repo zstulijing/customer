@@ -7,7 +7,6 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     profile: {},
-    company: {},
     otherPart: {},
     type: 1
   },
@@ -17,9 +16,6 @@ export default new Vuex.Store({
     },
     setOtherPart(state, otherPart) {
       state.otherPart = otherPart
-    },
-    setCompany(state, company) {
-      state.company = company
     },
     setType(state, type) {
       state.type = type

@@ -10,6 +10,8 @@
   @import 'assets/fonts/fonts.css';
   
   #app {
-    width: 100%;
+    position: relative;
+    width: 80%;
+    margin: 0 auto;
   }
 </style>

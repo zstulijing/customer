@@ -6,8 +6,7 @@
     <div class="list clearfix clear">
       <div class="button clear">
         <button @click="choose(0)" :class="isActive(0)">全部会话</button>
-        <button @click="choose(1)" :class="isActive(1)">好友</button>
-        <button @click="choose(2)" :class="isActive(2)">客服</button>
+        <button @click="choose(1)" :class="isActive(1)">消息</button>
         <button @click="choose(3)" :class="isActive(3)">群聊</button>
       </div>
       <div class="session">
@@ -15,6 +14,9 @@
 
         </div>
         <div v-else-if="show[1]">
+          <div class="briefList">
+            <p>ai</p>
+          </div>
           <div class="briefList" v-for="(item, index) in friendList" :key="index">
             <div v-if="item != null" class="clear" @click="chatContent(index)">
 
@@ -33,34 +35,7 @@
 
           </div>
         </div>
-        <div v-else-if="show[2]">
-          <div class="service">
-            <div class="state clear">
-              <div class="clear">
-                <div :class="onlineState"></div>
 
-                <div>在线状态</div>
-              </div>
-              <div @click="busy()" :class="busyState">忙碌</div>
-              <div @click="spare()" :class="spareState">空闲</div>
-            </div>
-            <div class="briefList" v-for="(item, index) in serviceList" :key="index" @click="chatContent(index)">
-              <div v-if="item != null" class="clear">
-              <p class="newMessage" v-if="item.data.data.news_length != 0">{{item.data.data.news_length}}</p>
-              <div class="briefList_photo">
-                <img :src="getIMG(item.data.data.profile_img)" alt="">
-              </div>
-              <div class="briefList_talk">
-                <p>{{item.data.data.talk_name}}</p>
-                <p>{{item.data.data.messege | cutMessage}}</p>
-              </div>
-              <div class="briefList_time">
-                <p>{{item.data.data.create_time | showDate}}</p>
-              </div>
-            </div>
-            </div>
-          </div>
-        </div>
         <div v-else-if="show[3]">
           
         </div>
@@ -110,39 +85,12 @@ export default {
       friendList: [],
       friendRelativeId: [],
 
-      serviceList: [],
-      serviceRelativeId: [],
-
       groupList: [],
       groupRelativeId: [],
 
       chooseNow: 1,
 
       intervalNum: 0,
-      serviceStatus: false,
-    }
-  },
-  computed: {
-    busyState() {
-      if (!this.serviceStatus) {
-        return {busy: true}
-      } else {
-        return {normal: true}
-      }
-    },
-    spareState() {
-      if (this.serviceStatus) {
-        return {spare: true}
-      } else {
-        return {normal: true}
-      }
-    },
-    onlineState() {
-      if (this.serviceStatus) {
-        return {onlineStateSpare: true, onlineStateBusy: false}
-      } else {
-        return {onlineStateBusy: true, onlineStateSpare: false}
-      }
     }
   },
   methods: {
@@ -198,29 +146,6 @@ export default {
           }
           break;
 
-        case 2: //客服
-          if (this.$route.path.indexOf(this.serviceList[index].data.data.peer_id) == -1) {
-            this.$store.commit('setOtherPart', {
-              talkName: this.serviceList[index].data.data.talk_name,
-              linkUser: this.serviceList[index].data.data.peer_id,
-              profileImg: this.serviceList[index].data.data.profile_img,
-              clientId: this.serviceList[index].data.data.client_id,
-              relative: this.serviceRelativeId[index]
-            })
-            request({
-              method: 'GET',
-              url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
-              params: {
-                relative_id: this.serviceRelativeId[index],
-                type: 3
-              }
-            }).then(response => {
-              this.serviceList[index].data.data.news_length = 0
-              this.$router.push('/chat/' + this.serviceList[index].data.data.peer_id)
-            })
-          }
-          break;
-
         case 3: //群聊
           if (this.$route.path.indexOf(this.groupList[index].data.data.peer_id) == -1) {
             this.$store.commit('setOtherPart', {
@@ -271,60 +196,8 @@ export default {
         })
       })
     },
-    serviceListUpdate() { //客服列表更新
-      request({
-        method: 'GET',
-        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
-        params: {
-          user_id: this.$store.state.profile.id,
-          type: 3
-        }
-      }).then(response => {
-        let all = []
-        for (let i in response.data.data) {
-          this.serviceRelativeId[i] = response.data.data[i].imRecenttalk.relative
-          all.push(request({
-            method: 'GET',
-            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
-            params: {
-              type: 3,
-              relative_id: response.data.data[i].imRecenttalk.relative
-            }
-          }))
-        }
-        Promise.all(all).then(response => {
-          this.serviceList = response
-        })
-      })
-    },
-    spare() {
-      if (!this.serviceStatus) {
-        this.serviceStatus = !this.serviceStatus
-        request({
-          method: 'GET',
-          url: 'http://l423145x35.oicp.vip/bs-company-user/updateById',
-          params: {
-            id: this.$store.state.company.id,
-            serviceStatus: true
-          }
-        })
-      }
-    },
-    busy() {
-      if (this.serviceStatus) {
-        this.serviceStatus = !this.serviceStatus
-        request({
-          method: 'GET',
-          url: 'http://l423145x35.oicp.vip/bs-company-user/updateById',
-          params: {
-            id: this.$store.state.company.id,
-            serviceStatus: false
-          }
-        }).then(response => {
-          
-        })
-      }
-    },
+
+
     getSessionList() { //好友
       request({
         method: 'GET',
@@ -353,34 +226,7 @@ export default {
         })
       })
     },
-    getServiceList() { //客服
-      request({
-        method: 'GET',
-        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
-        params: {
-          user_id: this.$store.state.profile.id,
-          type: 3
-        }
-      }).then(response => {
-        let mesLength = response.data.data.length
-        this.serviceList = new Array(mesLength)
-        let all = []
-        for (let i in response.data.data) {
-          this.serviceRelativeId[i] = response.data.data[i].imRecenttalk.relative
-          all.push(request({
-            method: 'GET',
-            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
-            params: {
-              type: 3,
-              relative_id: response.data.data[i].imRecenttalk.relative
-            }
-          }))
-        }
-        Promise.all(all).then(response => {
-          this.serviceList = response
-        })
-      })
-    },
+
     getGroupList() { //群聊
       request({
         method: 'GET',
@@ -391,7 +237,7 @@ export default {
         }
       }).then(response => {
         let mesLength = response.data.data.length
-        this.serviceList = new Array(mesLength)
+        this.groupList = new Array(mesLength)
         let all = []
         for (let i in response.data.data) {
           this.groupRelativeId[i] = response.data.data[i].imRecenttalk.relative
@@ -412,52 +258,39 @@ export default {
   },
   mounted () {
     this.getSessionList()
-    this.getServiceList()
+
     this.getGroupList()
-    this.serviceStatus = this.$store.state.company.serviceStatus
-    this.intervalNum = setInterval(() => {
-      request({
-        method: 'GET',
-        url: 'http://l423145x35.oicp.vip/chatOne/getMesBool',
-        params: {
-          me_id: this.$store.state.profile.id
-        }
-      }).then(response => {
-        if (response.data.data.flag == true) {
 
-          for (let i of response.data.data.relation_list) {
-            if (i == this.$store.state.otherPart.relative) {
-              this.$emit('update', '')
-            }
-          }
-          if (response.data.data.relation_list.length != 0) {
-            this.friendListUpdate()
-          }
+    // this.intervalNum = setInterval(() => {
+    //   request({
+    //     method: 'GET',
+    //     url: 'http://l423145x35.oicp.vip/chatOne/getMesBool',
+    //     params: {
+    //       me_id: this.$store.state.profile.id
+    //     }
+    //   }).then(response => {
+    //     if (response.data.data.flag == true) {
 
-          for (let i of response.data.data.service_relation) { //客服
-            if (i == this.$store.state.otherPart.relative) {
-              this.$emit('update', '')
-            }
-          }
-          if (response.data.data.service_relation.length != 0) {
-            this.serviceListUpdate()
-          }
+    //       for (let i of response.data.data.relation_list) {
+    //         if (i == this.$store.state.otherPart.relative) {
+    //           this.$emit('update', '')
+    //         }
+    //       }
+    //       if (response.data.data.relation_list.length != 0) {
+    //         this.friendListUpdate()
+    //       }
 
-
-
-          for (let i of response.data.data.group_relation) { //群聊
+    //       for (let i of response.data.data.group_relation) { //群聊
           
-          }
-
-
-          if (response.data.data.broadcast.length != 0) {
-            this.$emit('prompt', response.data.data.broadcast)
-          }
-        }
-      }).catch((err) => {
-        clearInterval(this.intervalNum)
-      })
-    }, 100);
+    //       }
+    //       if (response.data.data.broadcast.length != 0) {
+    //         this.$emit('prompt', response.data.data.broadcast)
+    //       }
+    //     }
+    //   }).catch((err) => {
+    //     clearInterval(this.intervalNum)
+    //   })
+    // }, 100);
   },
   destroyed() {
     clearInterval(this.intervalNum)

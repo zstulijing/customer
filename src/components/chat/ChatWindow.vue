@@ -162,35 +162,6 @@ export default {
             })
           })
           break;
-        case 2: //客服
-          request({
-            method: 'GET',
-            url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
-            params: {
-              relativeId: this.$store.state.otherPart.relative,
-              sendId: this.$store.state.profile.id,
-              agentId: this.$store.state.profile.id,
-              type: 1,
-              content: sendMessage,
-              serviceKey: this.$store.state.otherPart.linkUser
-            }
-          }).then(response => {
-            this.$emit('send')
-            request({
-              method: 'GET',
-              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
-              params: {
-                source_id: this.source_id,
-                type: 3,
-                me_id: this.myId
-              }
-            }).then(response => {
-              this.records = response.data.data.history.records
-            })
-          })
-
-          break;
-
         case 3: //群聊
 
           break;
@@ -322,6 +293,7 @@ export default {
   .dialogue {
     float: left;
     margin-right: 15px;
+    width: 100%;
     height: calc(100vh - 100px);
     box-sizing: border-box;
     border: 1px solid rgba(112, 112, 112, 0.3);
@@ -329,7 +301,7 @@ export default {
     .chatbox {
       box-sizing: border-box;
       padding: 0 45px 0 50px;
-      width: 750px;
+      width: 100%;
       height: 450px;
       background: rgb(248, 248, 248);
       overflow: auto;

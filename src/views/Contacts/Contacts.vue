@@ -28,7 +28,5 @@ export default {
 
 <style lang="less" scoped>
   @navBarHeight: 40px;
-  .contentArea {
-    margin-top: @navBarHeight;
-  }
+
 </style>

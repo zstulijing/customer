@@ -177,6 +177,7 @@ export default {
         } else if (response.data.code == 200) {
           //登录成功
           this.$store.commit('setProfile', response.data.data)
+          this.$router.push('/chat')
         }
       })
     },

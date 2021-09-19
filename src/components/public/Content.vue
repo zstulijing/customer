@@ -35,14 +35,6 @@ export default {
   @navBarHeight: 40px;
   @funBarWidth: 60px;
 
-  // .content {
-  //   position: absolute;
-  //   top: @navBarHeight;
-  //   left: @funBarWidth;
-  //   bottom: 0px;
-  // }
-
-
   .content {
     margin-left: @funBarWidth;
   }

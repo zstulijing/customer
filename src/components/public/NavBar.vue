@@ -36,12 +36,10 @@ export default {
         method: 'GET',
         url: 'http://l423145x35.oicp.vip/bs-people/leave',
         params: {
-          agent_id: this.$store.state.company.id,
           people_id: this.$store.state.profile.id
         }
       }).then(response => {
         this.$store.commit('setProfile', null)
-        this.$store.commit('setCompany', null)
         this.$router.push('/logon')
       })
     }
@@ -54,8 +52,9 @@ export default {
   @navBarHeight: 40px;
   
   #bar {
+    width: 80%;
     z-index: 10;
-    position: fixed;
+    // position: fixed;
     background-color: #fff;
     width: 100%;
     height: @navBarHeight;
