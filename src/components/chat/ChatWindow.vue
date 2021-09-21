@@ -687,9 +687,9 @@ export default {
       }
     }
   }
-  @media screen and (max-width: 1500px) {
-    .chatFunction {
-      display: none;
-    }
+
+  .chatFunction {
+    display: none;
   }
+  
 </style>

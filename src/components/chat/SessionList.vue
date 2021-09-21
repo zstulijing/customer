@@ -5,8 +5,7 @@
     </div>
     <div class="list clearfix clear">
       <div class="button clear">
-        <button @click="choose(0)" :class="isActive(0)">全部会话</button>
-        <button @click="choose(1)" :class="isActive(1)">单聊</button> 
+        <button @click="choose(1)" :class="isActive(1)">消息</button> 
         <button @click="choose(3)" :class="isActive(3)">群聊</button>
       </div>
       <div class="session">
@@ -14,19 +13,19 @@
 
         </div>
         <div v-else-if="show[1]">
-          <div class="briefList">
-            <!-- <div class="clear">
-               <p class="newMessage" v-if="item.data.data.news_length != 0">{{item.data.data.news_length}}</p>
+          <div class="briefList ai">
+            <div v-if="ai != null" class="clear">
               <div class="briefList_photo">
-                <img :src="imgURL(item.data.data.profile_img)" alt="">
+                <img :src="imgURL(ai.aiProfileImg)" alt="">
               </div>
               <div class="briefList_talk">
-                <p>{{item.data.data.talk_name}}</p>
-                <p>{{item.data.data.messege | cutMessage}}</p>
+                <p>{{ai.aiName}}</p>
+                <p v-if="!ai.isnew">{{ai.talkMessage | cutMessage}}</p>
               </div>
               <div class="briefList_time">
-                <p>{{item.data.data.create_time | showDate}}</p>
-            </div> -->
+                <p v-if="!ai.isnew">{{ai.talkTime | showDate}}</p>
+              </div>
+            </div>
           </div>
 
           <div class="briefList" v-for="(item, index) in friendList" :key="index">
@@ -79,6 +78,9 @@ export default {
   name: 'SessionList',
   filters: {
     showDate(date) {
+      if (date == null) {
+        return ''
+      }
       let YMD = date.split('T')[0].split('-')
   
       let now = new Date().toLocaleDateString().split('/')
@@ -97,6 +99,9 @@ export default {
       }
     },
     cutMessage(message) {
+      if (message == null) {
+        return ''
+      }
       if (message.length >= 13) {
         return message.substring(0, 13) + '...'
       } else {
@@ -118,7 +123,8 @@ export default {
       chooseNow: 1,
 
       intervalNum: 0,
-
+      
+      ai: {}
     }
   },
   methods: {
@@ -251,7 +257,17 @@ export default {
         })
       })
     },
-    getSessionList() { //好友
+    getSessionList() { //单聊
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chattwo/getClientServiceNews',
+        params: {
+          people_id: this.$store.state.profile.id,
+          firm_id: '26607242283450368'
+        }
+      }).then(response => {
+        this.ai = response.data.data
+      })
       request({
         method: 'GET',
         url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
@@ -310,7 +326,6 @@ export default {
   },
   mounted () {
     this.getSessionList()
-
     this.getGroupList()
 
     this.intervalNum = setInterval(() => {
@@ -444,7 +459,12 @@ export default {
       }
     }
     .session {
-
+      .ai {
+        background-color: #E3E3E3;
+      }
+      .briefList:hover {
+        background-color: #C8C8C8;
+      }
       .briefList {
         &>div:nth-child(1) {
           position: relative;
