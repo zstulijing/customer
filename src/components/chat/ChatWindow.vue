@@ -4,20 +4,36 @@
       <div class="chatbox clearfix" ref="chatbox">
         <div v-for="(record, index) in records" :key="index">
           <div v-if="record != null">
-
             <div v-if="judgeDirection(record) == 1">
-              <chat-record-left>
-                <img :src="imgURL(profileImg)" alt="" slot="head">
-                <p v-if="record.content" slot="text">{{record.content}}</p>
-                <img v-else-if="record.savePath" :src="imgURL(record.savePath)" alt="" slot="emoji">
+              <chat-record-left :type="record.type" >
+                <img :src="imgURL(people[index].profileImg)" alt="" slot="head">
+                <p v-if="record.type == 1" slot="text">{{record.content}}</p>
+                <p v-if="$store.state.type == 3" slot="name">{{people[index].name}}</p>
+                <img v-else-if="record.type == 2" :src="imgURL(record.savePath)" alt="" slot="emoji">
+
+                <div v-else-if="record.type == 5" slot="file" class="clear" @click="download(record.savePath)">
+                  <img :src="extension(record)">
+                  <div>
+                    <p>{{record.fileName | brief}}</p>
+                    <p>{{record.content}}</p>
+                  </div>
+                </div>
               </chat-record-left>
             </div>
 
             <div v-if="judgeDirection(record) == 2">
-              <chat-record-right>
-                <img :src="imgURL($store.state.profile.profileImg)" alt="" slot="head">
-                <p v-if="record.content" slot="text">{{record.content}}</p>
-                <img v-else-if="record.savePath" :src="imgURL(record.savePath)" alt="" slot="emoji">
+              <chat-record-right :type="record.type" >
+                <img :src="imgURL(people[index].profileImg)" alt="" slot="head">
+                <p v-if="record.type == 1" slot="text">{{record.content}}</p>
+                <img v-else-if="record.type == 2" :src="imgURL(record.savePath)" alt="" slot="emoji">
+
+                <div v-else-if="record.type == 5" slot="file" class="clear" @click="download(record.savePath)">
+                  <img :src="extension(record)">
+                  <div>
+                    <p>{{record.fileName | brief}}</p>
+                    <p>{{record.content}}</p>
+                  </div>
+                </div>
               </chat-record-right>
             </div>
 
@@ -34,11 +50,12 @@
         <div class="fun clear">
           <div><img src="~assets/img/chat/emoji.png" alt=""></div>
           <div><img src="~assets/img/chat/screenshot.png" alt=""></div>
-          <div><img src="~assets/img/chat/document.png" alt=""></div>
+          <div><img src="~assets/img/chat/document.png" alt="" @click="upload()"></div>
           <div><img src="~assets/img/chat/commonWords.png" alt=""></div>
           <div><img src="~assets/img/chat/history.png" alt=""></div>
+          <input type="file" style="display: none" ref="file">
         </div>
-        <textarea name="" id="" cols="30" rows="10" v-model="sendMessage" @keyup.enter="send()"></textarea>
+        <textarea cols="30" rows="10" v-model="sendMessage" @keyup.enter="send()"></textarea>
         <div class="button clear"><button @click="send()">发送(S)</button></div>
       </div>
     </div>
@@ -46,7 +63,8 @@
     <div class="chatFunction">
       <div class="cFuntion clear">
         <div @click="userMessage()">
-          <p :class="{active: isUserMessage}">用户信息</p>
+          <p :class="{active: isUserMessage}" v-if="type == 3">群聊信息</p>
+          <p :class="{active: isUserMessage}" v-else>用户信息</p>
         </div>
         <div @click="knowledgeBase()">
           <p :class="{active: isKnowledgeBase}">知识库搜索</p></div>
@@ -64,14 +82,15 @@
 </template>
 
 <script>
-import {request} from 'network/request.js'
 
+import {request} from 'network/request.js'
 import ChatRecordLeft from 'components/chat/ChatRecordLeft.vue'
 import ChatRecordRight from 'components/chat/ChatRecordRight.vue'
 import ChatRecordCenter from 'components/chat/ChatRecordCenter.vue'
 import ChatInformation from 'components/chat/ChatInformation.vue'
 import knowledgeBase from 'components/chat/KnowledgeBase.vue'
 import QuickReply from 'components/chat/QuickReply.vue'
+import axios from 'axios'
 
 export default {
   name: 'ChatWindow',
@@ -83,9 +102,22 @@ export default {
     knowledgeBase,
     QuickReply
   },
-  props: {
-    profileImg: {
-      type: String
+  filters: {
+    brief(name) {
+      if (name.lastIndexOf('.') > 9) {
+        let sub1 = name.substr(0, name.lastIndexOf('.'))
+        let sub2 = sub1.slice(0, 6) + '...' + sub1[sub1.length - 1] 
+        return sub2 + name.substr(name.lastIndexOf('.'))
+      } else {
+        return name
+      }
+    },
+    fileSize(size) {
+      if (size >= 1024) {
+        return Math.round(parseInt(size / 1024)) + ' MB'
+      } else {
+        return size + ' B'
+      }
     }
   },
   data() {
@@ -100,13 +132,15 @@ export default {
       sendMessage: '',
       isUserMessage: true,
       isKnowledgeBase: false,
-      isQuickReply: false
+      isQuickReply: false,
+      type: 0,
+      people: [],
     }
   },
-
   methods: {
     imgURL(fileName) {
-      return 'http://l423145x35.oicp.vip/file/' + fileName
+      // return 'http://l423145x35.oicp.vip/file/' + fileName
+      return `http://l423145x35.oicp.vip/config/download?annexName=${fileName}&type=%E7%BC%A9%E7%95%A5%E5%9B%BE`
     },
     judgeDirection(record) {
       if (record.type == 0) { //系统消息
@@ -115,19 +149,29 @@ export default {
         return 3
 
       }
-      else if (record.type == 1 || record.type == 2) { //文字消息
-        if (record.sendId == this.myId) {
-          this.isLeft = false
-          this.isRight = true
-          return 2
-
-        } else {
-          this.isLeft = true
-          this.isRight = false
-          return 1
-
+      else { //文字消息
+        if (this.$store.state.type == 1 || this.$store.state.type == 3) {//单聊|群聊
+          if (record.sendId == this.myId) {
+            this.isLeft = false
+            this.isRight = true
+            return 2
+          } else {
+            this.isLeft = true
+            this.isRight = false
+            return 1
+          }
+        } else if (this.$store.state.type == 2) {
+          if (record.sendId == this.$store.state.otherPart.clientId) {
+            this.isLeft = true
+            this.isRight = false
+            return 1
+          } else {
+            this.isLeft = false
+            this.isRight = true
+            return 2
+          }
         }
-      }
+      } 
     },
     addTag() {
       
@@ -158,16 +202,69 @@ export default {
                 me_id: this.myId
               }
             }).then(response => {
-              this.records = response.data.data.records
+              this.records = response.data.data.history.records
+              this.people = response.data.data.people
             })
           })
           break;
-        case 3: //群聊
+        case 2: //客服
+          request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
+            params: {
+              relativeId: this.$store.state.otherPart.relative,
+              sendId: this.$store.state.profile.id,
+              agentId: this.$store.state.profile.id,
+              type: 1,
+              content: sendMessage,
+              serviceKey: this.$store.state.otherPart.linkUser,
+              clientId: this.$store.state.otherPart.clientId,
+            }
+          }).then(response => {
+            this.$emit('send')
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 3,
+                me_id: this.myId
+              }
+            }).then(response => {
+              this.records = response.data.data.history.records
+              this.people = response.data.data.people
+            })
+          })
 
           break;
-      }
-      
 
+        case 3: //群聊
+          request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/sendInfoInGroup',
+            params: {
+              sendId: this.$store.state.profile.id,
+              groupId: this.$store.state.otherPart.linkUser,
+              content: sendMessage,
+              type: 1
+            }
+          }).then(response => {
+            this.$emit('send')
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 2,
+                me_id: this.myId
+              }
+            }).then(response => {
+              this.records = response.data.data.history.records
+              this.people = response.data.data.people
+            })
+          })
+          break;
+      }
     },
     userMessage() {
       this.isUserMessage = true,
@@ -191,7 +288,6 @@ export default {
       }
     },
     update() {
-
       switch (this.$store.state.type) {
         case 1: //单聊
           request({
@@ -211,7 +307,8 @@ export default {
                 me_id: this.myId
               }
             }).then(response => {
-              this.records = response.data.data.records
+              this.records = response.data.data.history.records
+              this.people = response.data.data.people
             })
           })
           break;
@@ -231,22 +328,215 @@ export default {
               params: {
                 source_id: this.source_id,
                 type: 3,
-                me_id: this.myId
+                
               }
             }).then(response => {
               this.records = response.data.data.history.records
+              this.people = response.data.data.people
             })
             
           })
           break;
 
         case 3: //群聊
-
+          request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
+            params: {
+              relative_id: this.$store.state.otherPart.relative,
+              type: 2
+            }
+          }).then(response => {
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 2,
+                me_id: this.myId
+              }
+            }).then(response => {
+              this.records = response.data.data.history.records
+              this.people = response.data.data.people
+            })
+          })
           break;
       }
+    },
+    upload() {
+      let file = this.$refs.file
+      file.click()
+    },
+    extension(record) {
+      let suffix = record.savePath.split('.').pop()
+      switch (suffix) {
+        case 'rar':
+        case '7z':
+        case 'zip':
+          return require('../../assets/img/file/rar.png')
+
+        case 'doc':
+        case 'docx':
+          return require('../../assets/img/file/doc.png')
+
+        case 'mp3':
+        case 'wav':
+          return require('../../assets/img/file/mp3.png')
+
+        case 'pdf':
+          return require('../../assets/img/file/pdf.png')
+        
+        case 'ppt':
+        case 'pptx':
+          return require('../../assets/img/file/ppt.png')
+
+        case 'xls':
+        case 'xlsx':
+          return require('../../assets/img/file/xls.png')
+        
+        case 'txt':
+          return require('../../assets/img/file/txt.png')
+
+        default:
+          return require('../../assets/img/file/null.png')
+      }
+
+    },
+    download(savePath) {
+      let url ='http://l423145x35.oicp.vip/file/' + savePath;
+      const downloadRes = async () => {
+        let response = await fetch(url); // 内容转变成blob地址
+        let blob = await response.blob();  // 创建隐藏的可下载链接
+        let objectUrl = window.URL.createObjectURL(blob);
+        let a = document.createElement('a');
+        a.href = objectUrl;
+        a.download = name;
+        a.click()
+        a.remove(); 
+    }
+    downloadRes();
     }
   },
   mounted() {
+    this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
+    this.type = this.$store.state.type
+    let input = this.$refs.file
+    input.onchange = () => {
+      let file = input.files[0]
+      let filename = file.name.substr(file.name.lastIndexOf('.'));
+      let content = ''
+      let type = 0
+
+      if (filename == '.jpg' || filename == '.gif' || filename == '.png' || filename == '.jpeg') {
+        type = 2
+      } else {
+        type = 5
+        if (file.size > 1024) {
+          content = (parseInt(file.size) / 1024).toFixed(2) + 'KB'
+        } else {
+          content = file.size + 'B'
+        }
+      }
+      
+      let params = new FormData()
+      params.append('file', file)
+      axios.post('http://l423145x35.oicp.vip/uploadDownload/uploadImage', params, {headers: {'Content-Type': 'multipart/form-data'}}).then(response => {
+        let localName = file.name
+        let fileName = response.data.data;
+        switch (this.$store.state.type) {
+          case 1: //单聊
+          request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/sendInfoInChat',
+            params: {
+              sendId: this.$store.state.profile.id,
+              receiveId: this.$store.state.otherPart.linkUser,
+              type: type,
+              firmId: this.$store.state.company.firmId,
+              content: content,
+              fileName: localName,
+              savePath: fileName
+            }
+          }).then(response => { //得到新消息
+            this.$emit('send')
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 1,
+                me_id: this.myId
+              }
+            }).then(response => {
+              this.records = response.data.data.records
+              this.people = response.data.data.people
+            })
+          })
+          break;
+
+          case 2: //客服
+          request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
+            params: {
+              relativeId: this.$store.state.otherPart.relative,
+              sendId: this.$store.state.profile.id,
+              agentId: this.$store.state.profile.id,
+              type: type,
+              serviceKey: this.$store.state.otherPart.linkUser,
+              content: content,
+              fileName: localName,
+              savePath: fileName                             
+            }
+          }).then(response => {
+            this.$emit('send')
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 3,
+                me_id: this.myId
+              }
+            }).then(response => {
+              this.records = response.data.data.history.records
+              this.people = response.data.data.people
+            })
+          })
+
+          break;
+
+          case 3: //群聊
+          request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/sendInfoInGroup',
+            params: {
+              sendId: this.$store.state.profile.id,
+              groupId: this.$store.state.otherPart.linkUser,
+              type: type,
+              fileName: localName,
+              savePath: fileName,
+              content: content           
+            }
+          }).then(response => {
+            this.$emit('send')
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 2,
+                me_id: this.myId
+              }
+            }).then(response => {
+              this.records = response.data.data.history.records
+              this.people = response.data.data.people
+            })
+          })
+          break;
+        }
+      })
+    }   
     if (this.source_id != null) {
       switch (this.$store.state.type) {
         case 1: //单聊
@@ -259,7 +549,9 @@ export default {
               me_id: this.myId
             }
           }).then(response => {
-            this.records = response.data.data.records
+            this.records = response.data.data.history.records
+            this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
+            this.people = response.data.data.people
           })
           break;
         case 2: //客服
@@ -273,9 +565,24 @@ export default {
             }
           }).then(response => {
             this.records = response.data.data.history.records
+            this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
+            this.people = response.data.data.people
           })
           break;
         case 3: //群聊
+          request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+            params: {
+              source_id: this.source_id,
+              type: 2,
+              me_id: this.myId
+            }
+          }).then(response => {
+            this.records = response.data.data.history.records
+            this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
+            this.people = response.data.data.people
+          })
           break;
       }
     }
@@ -293,7 +600,6 @@ export default {
   .dialogue {
     float: left;
     margin-right: 15px;
-    width: 100%;
     height: calc(100vh - 100px);
     box-sizing: border-box;
     border: 1px solid rgba(112, 112, 112, 0.3);
@@ -301,7 +607,7 @@ export default {
     .chatbox {
       box-sizing: border-box;
       padding: 0 45px 0 50px;
-      width: 100%;
+      width: 750px;
       height: 450px;
       background: rgb(248, 248, 248);
       overflow: auto;
@@ -315,6 +621,7 @@ export default {
           margin-right: 23px;
           img {
             width: 20px;
+            cursor: pointer;
           }
         }
         &>div:last-child {
@@ -349,14 +656,14 @@ export default {
     overflow: auto;
     box-sizing: border-box;
     float: left;
-    width: 395px;
+    width: 380px;
     border: 1px solid rgba(112, 112, 112, 0.3);
     border-radius: 10px;
     .cFuntion {
       &>div {
         text-align: center;
         float: left;
-        width: 125px;
+        width: 118px;
         height: 20px;
         font-size: 16px;
         font-family: 'Segoe UI';
@@ -380,5 +687,9 @@ export default {
       }
     }
   }
-  
+  @media screen and (max-width: 1500px) {
+    .chatFunction {
+      display: none;
+    }
+  }
 </style>

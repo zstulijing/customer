@@ -7,7 +7,7 @@
       <div class="quickReplyContent clear" v-for="(item, index) in quickReply" :key="index">
         <div>
           <p v-if="item.type == 1">{{item.quickReply}}</p>
-          <img v-else :src="getImg(item.quickReply)" alt="">
+          <img v-else :src="imgURL(item.quickReply)" alt="">
 
           <p>{{item.keyword}}</p>
         </div>
@@ -37,8 +37,9 @@ export default {
     }
   },
   methods: {
-    getImg(fileName) {
-      return 'http://l423145x35.oicp.vip/file/' + fileName
+    imgURL(fileName) {
+      // return 'http://l423145x35.oicp.vip/file/' + fileName
+      return `http://l423145x35.oicp.vip/config/download?annexName=${fileName}&type=%E7%BC%A9%E7%95%A5%E5%9B%BE`
     },
     searchQuickReply() {
       request({
@@ -190,7 +191,7 @@ export default {
     .qSetting {
       position: fixed;
       bottom: 0px;
-      width: 393px;
+      width: 365px;
       height: 50px;
       border-top: 1px solid #C8C8C8;
       background-color: #fff;

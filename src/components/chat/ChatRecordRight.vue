@@ -5,7 +5,12 @@
       <slot name="head"></slot>
     </div>
 
-    <div class="text clear">
+
+    <div class="file" v-if="type == 5">
+      <slot name="file"></slot>
+    </div>
+
+    <div class="text clear" v-else>
 
       <div class="border"></div>
       
@@ -21,7 +26,12 @@
 
 <script>
 export default {
-  name: 'ChatRecordRight'
+  name: 'ChatRecordRight',
+  props: {
+    type: {
+      type: Number
+    }
+  }
 }
 </script>
 
@@ -38,6 +48,38 @@ export default {
     img {
       width: 40px;
       height: 40px;
+    }
+  }
+  .file {
+    &>div {
+      cursor: pointer;
+      box-sizing: border-box;
+      border: 1px solid #DBE3E8;
+      border-radius: 10px;
+      margin-right: 15px;
+      width: 250px;
+      height: 90px;
+      padding: 10px;
+      img {
+        float: left;
+        width: 60px;
+        height: 60px;
+      }
+      &>div {
+        float: left;
+        margin-left: 5px;
+        &>p:nth-child(1) {
+          color: #000;
+          margin-top: 10px;
+          font-size: 16px;
+        }
+        &>p:nth-child(2) {
+          margin-left: 5px;
+          color: #666666;
+          margin-top: 10px;
+          font-size: 12px;
+        }
+      }
     }
   }
   .text {

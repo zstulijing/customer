@@ -1,14 +1,14 @@
 <template>
   <div class="KnowledgeBase">
     <div class="kSearch">
-      <input type="text" v-model="search" placeholder="搜索快捷短语" @keyup.enter="searchKnowledgeBase()">
+      <input type="text" v-model="search" placeholder="搜索知识库" @keyup.enter="searchKnowledgeBase()">
     </div>
     <div class="kContent">
       <div class="knowledgeBaseContent clear" v-for="(item, index) in knowledgeBase" :key="index">
         <div>
           <p>{{item.theKey}}</p>
           <p v-if="item.type == 1">{{item.theValue}}</p>
-          <img v-else :src="getImg(item.theValue)" alt="">
+          <img v-else :src="imgURL(item.theValue)" alt="">
         </div>
         <div>
           <button @click="sendQuick(index)">发送</button>
@@ -29,8 +29,9 @@ export default {
     }
   },
   methods: {
-    getImg(fileName) {
-      return 'http://l423145x35.oicp.vip/file/' + fileName
+    imgURL(fileName) {
+      // return 'http://l423145x35.oicp.vip/file/' + fileName
+      return `http://l423145x35.oicp.vip/config/download?annexName=${fileName}&type=%E7%BC%A9%E7%95%A5%E5%9B%BE`
     },
     searchKnowledgeBase() {
       request({
@@ -51,6 +52,10 @@ export default {
         quickReply: this.knowledgeBase[index].theValue,
         type: this.knowledgeBase[index].type  
       })
+      console.log({
+        quickReply: this.knowledgeBase[index].theValue,
+        type: this.knowledgeBase[index].type  
+      });
     }
   },
   mounted () {

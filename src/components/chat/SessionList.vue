@@ -6,7 +6,7 @@
     <div class="list clearfix clear">
       <div class="button clear">
         <button @click="choose(0)" :class="isActive(0)">全部会话</button>
-        <button @click="choose(1)" :class="isActive(1)">消息</button>
+        <button @click="choose(1)" :class="isActive(1)">单聊</button> 
         <button @click="choose(3)" :class="isActive(3)">群聊</button>
       </div>
       <div class="session">
@@ -15,14 +15,26 @@
         </div>
         <div v-else-if="show[1]">
           <div class="briefList">
-            <p>ai</p>
+            <!-- <div class="clear">
+               <p class="newMessage" v-if="item.data.data.news_length != 0">{{item.data.data.news_length}}</p>
+              <div class="briefList_photo">
+                <img :src="imgURL(item.data.data.profile_img)" alt="">
+              </div>
+              <div class="briefList_talk">
+                <p>{{item.data.data.talk_name}}</p>
+                <p>{{item.data.data.messege | cutMessage}}</p>
+              </div>
+              <div class="briefList_time">
+                <p>{{item.data.data.create_time | showDate}}</p>
+            </div> -->
           </div>
+
           <div class="briefList" v-for="(item, index) in friendList" :key="index">
             <div v-if="item != null" class="clear" @click="chatContent(index)">
 
               <p class="newMessage" v-if="item.data.data.news_length != 0">{{item.data.data.news_length}}</p>
               <div class="briefList_photo">
-                <img :src="getIMG(item.data.data.profile_img)" alt="">
+                <img :src="imgURL(item.data.data.profile_img)" alt="">
               </div>
               <div class="briefList_talk">
                 <p>{{item.data.data.talk_name}}</p>
@@ -35,9 +47,24 @@
 
           </div>
         </div>
-
+        
         <div v-else-if="show[3]">
-          
+          <div class="briefList" v-for="(item, index) in groupList" :key="index">
+            <div v-if="item != null" class="clear" @click="chatContent(index)">
+
+              <p class="newMessage" v-if="item.data.data.news_length != 0">{{item.data.data.news_length}}</p>
+              <div class="briefList_photo">
+                <img :src="imgURL(item.data.data.profile_img)" alt="">
+              </div>
+              <div class="briefList_talk">
+                <p>{{item.data.data.talk_name}}</p>
+                <p>{{item.data.data.messege | cutMessage}}</p>
+              </div>
+              <div class="briefList_time">
+                <p>{{item.data.data.create_time | showDate}}</p>
+              </div>
+            </div>
+          </div>
         </div>
         
       </div>
@@ -91,6 +118,7 @@ export default {
       chooseNow: 1,
 
       intervalNum: 0,
+
     }
   },
   methods: {
@@ -115,8 +143,9 @@ export default {
         return {active: false}
       }
     },
-    getIMG(filename) {
-      return 'http://l423145x35.oicp.vip/file/' + filename
+    imgURL(fileName) {
+      // return 'http://l423145x35.oicp.vip/file/' + fileName
+      return `http://l423145x35.oicp.vip/config/download?annexName=${fileName}&type=%E7%BC%A9%E7%95%A5%E5%9B%BE`
     },
     chatContent(index) {
       switch (this.chooseNow) {
@@ -196,8 +225,32 @@ export default {
         })
       })
     },
-
-
+    groupListUpdate() {
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
+        params: {
+          user_id: this.$store.state.profile.id,
+          type: 2
+        }
+      }).then(response => {
+        let all = []
+        for (let i in response.data.data) {
+          this.serviceRelativeId[i] = response.data.data[i].imRecenttalk.relative
+          all.push(request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chat/getNewHisByRelativeId',
+            params: {
+              type: 2,
+              relative_id: response.data.data[i].imRecenttalk.relative
+            }
+          }))
+        }
+        Promise.all(all).then(response => {
+          this.groupList = response
+        })
+      })
+    },
     getSessionList() { //好友
       request({
         method: 'GET',
@@ -226,7 +279,6 @@ export default {
         })
       })
     },
-
     getGroupList() { //群聊
       request({
         method: 'GET',
@@ -261,36 +313,42 @@ export default {
 
     this.getGroupList()
 
-    // this.intervalNum = setInterval(() => {
-    //   request({
-    //     method: 'GET',
-    //     url: 'http://l423145x35.oicp.vip/chatOne/getMesBool',
-    //     params: {
-    //       me_id: this.$store.state.profile.id
-    //     }
-    //   }).then(response => {
-    //     if (response.data.data.flag == true) {
+    this.intervalNum = setInterval(() => {
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chatOne/getMesBool',
+        params: {
+          me_id: this.$store.state.profile.id
+        }
+      }).then(response => {
+        if (response.data.data.flag == true) {
 
-    //       for (let i of response.data.data.relation_list) {
-    //         if (i == this.$store.state.otherPart.relative) {
-    //           this.$emit('update', '')
-    //         }
-    //       }
-    //       if (response.data.data.relation_list.length != 0) {
-    //         this.friendListUpdate()
-    //       }
+          for (let i of response.data.data.relation_list) {
+            if (i == this.$store.state.otherPart.relative) {
+              this.$emit('update', '')
+            }
+          }
+          if (response.data.data.relation_list.length != 0) {
+            this.friendListUpdate()
+          }
 
-    //       for (let i of response.data.data.group_relation) { //群聊
-          
-    //       }
-    //       if (response.data.data.broadcast.length != 0) {
-    //         this.$emit('prompt', response.data.data.broadcast)
-    //       }
-    //     }
-    //   }).catch((err) => {
-    //     clearInterval(this.intervalNum)
-    //   })
-    // }, 100);
+          for (let i of response.data.data.group_relation) { //群聊
+            if (i == this.$store.state.otherPart.relative) {
+              this.$emit('update', '')
+            }
+          }
+          if (response.data.data.group_relation.length != 0) {
+            this.groupListUpdate()
+          }
+
+          if (response.data.data.broadcast.length != 0) {
+            this.$emit('prompt', response.data.data.broadcast)
+          }
+        }
+      }).catch((err) => {
+        clearInterval(this.intervalNum)
+      })
+    }, 100);
   },
   destroyed() {
     clearInterval(this.intervalNum)
