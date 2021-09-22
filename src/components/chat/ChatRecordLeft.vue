@@ -18,6 +18,11 @@
         <div class="border"></div>
 
         <div class="textarea">
+
+          <div class="ai" v-if="type == 6">
+            <slot name="ai"></slot>
+          </div>
+
           <slot name="text"></slot>
           <slot name="emoji"></slot>
           
@@ -102,6 +107,22 @@ export default {
         border-radius: 10px;
         max-width: 560px;
         padding: 5px 0;
+        .ai {
+          ul{
+            li {
+              cursor: pointer;
+              img {
+                width: 10px;
+                margin: 10px 0 10px 10px ;
+                float: left;
+              }
+              p {
+                float: left;
+                color: #FF8D62;
+              }
+            }
+          } 
+        }
         p {
           line-height: 30px;
           font-size: 16px;

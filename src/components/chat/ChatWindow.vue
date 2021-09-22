@@ -2,13 +2,14 @@
   <div class="window clear">
     <div class="dialogue">
       <div class="chatbox clearfix" ref="chatbox">
+        
         <div v-for="(record, index) in records" :key="index">
           <div v-if="record != null">
             <div v-if="judgeDirection(record) == 1">
               <chat-record-left :type="record.type" >
                 <img :src="imgURL(people[index].profileImg)" alt="" slot="head">
-                <p v-if="record.type == 1" slot="text">{{record.content}}</p>
                 <p v-if="$store.state.type == 3" slot="name">{{people[index].name}}</p>
+                <p v-if="record.type == 1" slot="text">{{record.content}}</p>
                 <img v-else-if="record.type == 2" :src="imgURL(record.savePath)" alt="" slot="emoji">
 
                 <div v-else-if="record.type == 5" slot="file" class="clear" @click="download(record.savePath)">
@@ -18,6 +19,18 @@
                     <p>{{record.content}}</p>
                   </div>
                 </div>
+
+                <div v-else-if="record.type == 6" slot="ai" class="clear">
+                  <p>请选择您需要咨询的问题:</p>
+                  <ul>
+                    <li v-for="(item, num) in record.content.split('+')" :key="num" class="clear" @click="answer(item)">
+                      <img src="~assets/img/chat/click.png" alt="">
+                      <p>{{item}}</p>
+                    </li>
+                  </ul>
+                  
+                </div>
+
               </chat-record-left>
             </div>
 
@@ -47,6 +60,13 @@
         </div>
       </div>
       <div class="send">
+        <div class="ai clear" v-if="$store.state.type == 4">
+          <p @click="toArtificialCustomer()">人工客服</p>
+          <p>最新活动</p>
+          <p>服务评价</p>
+          <p>热门课程</p>
+          <p>购买须知</p>
+        </div>
         <div class="fun clear">
           <div><img src="~assets/img/chat/emoji.png" alt=""></div>
           <div><img src="~assets/img/chat/screenshot.png" alt=""></div>
@@ -150,7 +170,7 @@ export default {
 
       }
       else { //文字消息
-        if (this.$store.state.type == 1 || this.$store.state.type == 4) {//单聊|群聊
+        if (this.$store.state.type == 1 || this.$store.state.type == 3) {//单聊|群聊
           if (record.sendId == this.myId) {
             this.isLeft = false
             this.isRight = true
@@ -160,7 +180,7 @@ export default {
             this.isRight = false
             return 1
           }
-        } else if (this.$store.state.type == 2) {
+        } else if (this.$store.state.type == 4) {
           if (record.sendId == this.$store.state.otherPart.clientId) {
             this.isLeft = true
             this.isRight = false
@@ -208,37 +228,77 @@ export default {
           })
           break;
         case 4: //客服
-          request({
-            method: 'GET',
-            url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
-            params: {
-              relativeId: this.$store.state.otherPart.currentRelative.id,
-              sendId: this.$store.state.profile.id,
-              agentId: this.$store.state.otherPart.currentRelative.agentId,
-              type: 1,
-              content: sendMessage,
-              serviceKey: this.$store.state.otherPart.currentRelative.serviceKey,
-              clientId: this.$store.state.otherPart.currentRelative.clientId,
-            }
-          }).then(response => {
-            
-            this.$emit('send')
+          if (this.$store.state.otherPart.currentRelative.id == this.$store.state.otherPart.selfRelative) {
+            //ai
             request({
               method: 'GET',
-              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
               params: {
-                firm_id: '26607242283450368',
-                type: 4,
-                me_id: this.myId
+                relativeId: this.$store.state.otherPart.currentRelative.id,
+                sendId: this.$store.state.profile.id,
+                agentId: this.$store.state.otherPart.currentRelative.agentId,
+                type: 1,
+                content: sendMessage,
+                serviceKey: this.$store.state.otherPart.currentRelative.serviceKey,
+                clientId: this.$store.state.otherPart.currentRelative.clientId,
               }
             }).then(response => {
-              this.records = response.data.data.history.records
-              this.people = response.data.data.people
+              return request({
+                method: 'GET',
+                url: 'http://l423145x35.oicp.vip/im-servicechat-history/aiResponse',
+                params: {
+                  words: sendMessage,
+                  firm_id: '26607242283450368',
+                  service_relative: this.$store.state.otherPart.relative
+                }
+              })
+            }).then(response => {
+              this.$emit('send')
+              request({
+                method: 'GET',
+                url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+                params: {
+                  firm_id: '26607242283450368',
+                  type: 4,
+                  me_id: this.myId
+                }
+              }).then(response => {
+                this.records = response.data.data.history.records
+                this.people = response.data.data.people
+              })
             })
-          })
+          } else {
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
+              params: {
+                relativeId: this.$store.state.otherPart.currentRelative.id,
+                sendId: this.$store.state.profile.id,
+                agentId: this.$store.state.otherPart.currentRelative.agentId,
+                type: 1,
+                content: sendMessage,
+                serviceKey: this.$store.state.otherPart.currentRelative.serviceKey,
+                clientId: this.$store.state.otherPart.currentRelative.clientId,
+              }
+            }).then(response => {
+              
+              this.$emit('send')
+              request({
+                method: 'GET',
+                url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+                params: {
+                  firm_id: '26607242283450368',
+                  type: 4,
+                  me_id: this.myId
+                }
+              }).then(response => {
+                this.records = response.data.data.history.records
+                this.people = response.data.data.people
+              })
+            })
+          }
 
           break;
-
         case 3: //群聊
           request({
             method: 'GET',
@@ -415,6 +475,66 @@ export default {
         a.remove(); 
     }
     downloadRes();
+    },
+    answer(question) {
+      let sendMessage = question
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
+        params: {
+          relativeId: this.$store.state.otherPart.currentRelative.id,
+          sendId: this.$store.state.profile.id,
+          agentId: this.$store.state.otherPart.currentRelative.agentId,
+          type: 1,
+          content: sendMessage,
+          serviceKey: this.$store.state.otherPart.currentRelative.serviceKey,
+          clientId: this.$store.state.otherPart.currentRelative.clientId,
+        }
+      }).then(response => {
+        return request({
+          method: 'GET',
+          url: 'http://l423145x35.oicp.vip/im-servicechat-history/aiResponse',
+          params: {
+            words: question,
+            firm_id: '26607242283450368',
+            service_relative: this.$store.state.otherPart.relative
+          }
+        })
+      }).then(response => {
+        this.$emit('send')
+        request({
+          method: 'GET',
+          url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+          params: {
+            firm_id: '26607242283450368',
+            type: 4,
+            me_id: this.myId
+          }
+        }).then(response => {
+          this.records = response.data.data.history.records
+          this.people = response.data.data.people
+        })
+      })
+    },
+    toArtificialCustomer() {
+      request({
+        method: 'GET',
+        url: 'http://l423145x35.oicp.vip/chat/getAgentInService',
+        params: {
+          firm_id: '26607242283450368',
+          israndom: true
+        }
+      }).then(response => {
+
+        return request({
+          method: 'GET',
+          url: 'http://l423145x35.oicp.vip/im-servicechat-relation/changeRelation',
+          params: {
+            key: this.$store.state.otherPart.currentRelative.serviceKey,
+            agent_id: response.data.data.id
+          }
+        })
+      })
     }
   },
   mounted() {
@@ -604,10 +724,10 @@ export default {
     height: calc(100vh - 100px);
     box-sizing: border-box;
     border: 1px solid rgba(112, 112, 112, 0.3);
-    border-radius: 0px 10px 0px 0px;
+    border-radius: 0px 10px 0px 0px; 
     .chatbox {
       box-sizing: border-box;
-      padding: 0 45px 0 50px;
+      padding: 0 45px 20px 50px;
       width: 750px;
       height: 450px;
       background: rgb(248, 248, 248);
@@ -616,6 +736,25 @@ export default {
     .send {
       padding: 20px 30px 5px 30px;
       background-color: #fafafa;
+      position: relative;
+      .ai {
+        top: -20px;
+        position: absolute;
+        width: 690px;
+        background-color: #FAFAFA;
+        opacity: 0.8;
+        height: 30px;
+        &>p {
+          cursor: pointer;
+          float: left;
+          padding: 5px;
+          border-radius: 10px;
+          border: 1px solid #bdbdbd;
+          color: #686868;
+          font-size: 14px;
+          margin-right: 10px;
+        }
+      }
       .fun {
         div {
           float: left;
@@ -636,7 +775,7 @@ export default {
         height: 100px;
         border: none;
         resize: none;
-        font-size: 22px;
+        font-size: 18px;
         background-color: #fafafa;
       }
       .button {

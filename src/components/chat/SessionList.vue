@@ -394,11 +394,14 @@ export default {
 
           let onlineBroadcast = []
           let serveBroadcast = []
+          let transferBroadcast = []
           for (let i of response.data.data.broadcast) {
             if (i.type == 1) {
               onlineBroadcast.push(i)
             } else if (i.type == 5) { //有客服消息
               serveBroadcast.push(i)
+            } else if (i.type == 4) { //客服转接
+              transferBroadcast.push(i)
             }
           }
           if (this.$store.state.type == 4) {
@@ -406,6 +409,21 @@ export default {
           }
           if (serveBroadcast.length != 0) {
             this.serviceListUpdate()
+          }
+          if (transferBroadcast.length != 0) {
+            if (this.$store.state.type == 4) {
+              request({
+                method: 'GET',
+                url: 'http://l423145x35.oicp.vip/im-servicechat-relation/clinetCreateRelation',
+                params: {
+                  client_id: this.$store.state.profile.id,
+                  firm_id: '26607242283450368'
+                }
+              }).then(response => {
+                this.serviceListUpdate()
+                this.$emit('update', '')
+              })
+            }
           }
           this.$emit('prompt', onlineBroadcast)
         }
