@@ -14,7 +14,8 @@
         </div>
         <div v-else-if="show[1]">
           <div class="briefList ai">
-            <div v-if="ai != null" class="clear">
+            <div v-if="ai != null" class="clear" @click="toAi()">
+              <p class="newMessage" v-if="ai.newsLength != 0">{{ai.newsLength}}</p>
               <div class="briefList_photo">
                 <img :src="imgURL(ai.aiProfileImg)" alt="">
               </div>
@@ -161,6 +162,7 @@ export default {
 
         case 1: //好友
           if (this.$route.path.indexOf(this.friendList[index].data.data.link_user) == -1) {
+            this.$store.state.type = 1
             this.$store.commit('setOtherPart', {
               talkName: this.friendList[index].data.data.talk_name,
               linkUser: this.friendList[index].data.data.link_user,
@@ -231,7 +233,7 @@ export default {
         })
       })
     },
-    groupListUpdate() {
+    groupListUpdate() { //群聊列表更新
       request({
         method: 'GET',
         url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
@@ -257,7 +259,7 @@ export default {
         })
       })
     },
-    getSessionList() { //单聊
+    serviceListUpdate() { //客服列表更新
       request({
         method: 'GET',
         url: 'http://l423145x35.oicp.vip/chattwo/getClientServiceNews',
@@ -268,6 +270,8 @@ export default {
       }).then(response => {
         this.ai = response.data.data
       })
+    },
+    getSessionList() { //单聊
       request({
         method: 'GET',
         url: 'http://l423145x35.oicp.vip/chat/RecenttalkListBySort',
@@ -322,12 +326,44 @@ export default {
           this.groupList = response
         })
       })
+    },
+    toAi() {
+      this.$store.state.type = 4
+      if (this.$route.path.indexOf('aiRobot') == -1) {
+        request({
+          method: 'GET',
+          url: 'http://l423145x35.oicp.vip/im-servicechat-relation/clinetCreateRelation',
+          params: {
+            client_id: this.$store.state.profile.id,
+            firm_id: '26607242283450368'
+          }
+        }).then(response => {
+          let otherPart = response.data.data
+          otherPart.talkName = this.ai.aiName
+          otherPart.linkUser = 'aiRobot',
+          otherPart.profileImg = this.ai.aiProfileImg,
+          otherPart.relative = response.data.data.selfRelative
+          this.$store.commit('setOtherPart', otherPart)
+          return request({
+            method: 'GET',
+            url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
+            params: {
+              relative_id: otherPart.selfRelative,
+              type: 3
+            }
+          })
+        }).then(response => {
+          this.ai.newsLength = 0
+          this.$router.push('/chat/aiRobot')
+        })
+
+      }
     }
   },
   mounted () {
     this.getSessionList()
     this.getGroupList()
-
+    this.serviceListUpdate()
     this.intervalNum = setInterval(() => {
       request({
         method: 'GET',
@@ -339,7 +375,7 @@ export default {
         if (response.data.data.flag == true) {
 
           for (let i of response.data.data.relation_list) {
-            if (i == this.$store.state.otherPart.relative) {
+            if (i == this.$store.state.otherPart.relative) { //单聊
               this.$emit('update', '')
             }
           }
@@ -356,9 +392,22 @@ export default {
             this.groupListUpdate()
           }
 
-          if (response.data.data.broadcast.length != 0) {
-            this.$emit('prompt', response.data.data.broadcast)
+          let onlineBroadcast = []
+          let serveBroadcast = []
+          for (let i of response.data.data.broadcast) {
+            if (i.type == 1) {
+              onlineBroadcast.push(i)
+            } else if (i.type == 5) { //有客服消息
+              serveBroadcast.push(i)
+            }
           }
+          if (this.$store.state.type == 4) {
+            this.$emit('update', '')
+          }
+          if (serveBroadcast.length != 0) {
+            this.serviceListUpdate()
+          }
+          this.$emit('prompt', onlineBroadcast)
         }
       }).catch((err) => {
         clearInterval(this.intervalNum)

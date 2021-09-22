@@ -30,15 +30,15 @@ export default {
       switch (this.$store.state.type) {
         case 1: //单聊
           this.$refs.sessionList.friendListUpdate()
-          break;
-        case 2: //客服
-          this.$refs.sessionList.serviceListUpdate()
-          break;
+          break
 
         case 3: //群聊
-          
-          break;
+          this.$refs.sessionList.groupListUpdate()
+          break
 
+        case 4: //客服
+          this.$refs.sessionList.serviceListUpdate()
+          break
       }
     },
     chatUpdate() {

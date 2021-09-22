@@ -150,7 +150,7 @@ export default {
 
       }
       else { //文字消息
-        if (this.$store.state.type == 1 || this.$store.state.type == 3) {//单聊|群聊
+        if (this.$store.state.type == 1 || this.$store.state.type == 4) {//单聊|群聊
           if (record.sendId == this.myId) {
             this.isLeft = false
             this.isRight = true
@@ -207,27 +207,28 @@ export default {
             })
           })
           break;
-        case 2: //客服
+        case 4: //客服
           request({
             method: 'GET',
             url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
             params: {
-              relativeId: this.$store.state.otherPart.relative,
+              relativeId: this.$store.state.otherPart.currentRelative.id,
               sendId: this.$store.state.profile.id,
-              agentId: this.$store.state.profile.id,
+              agentId: this.$store.state.otherPart.currentRelative.agentId,
               type: 1,
               content: sendMessage,
-              serviceKey: this.$store.state.otherPart.linkUser,
-              clientId: this.$store.state.otherPart.clientId,
+              serviceKey: this.$store.state.otherPart.currentRelative.serviceKey,
+              clientId: this.$store.state.otherPart.currentRelative.clientId,
             }
           }).then(response => {
+            
             this.$emit('send')
             request({
               method: 'GET',
               url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
               params: {
-                source_id: this.source_id,
-                type: 3,
+                firm_id: '26607242283450368',
+                type: 4,
                 me_id: this.myId
               }
             }).then(response => {
@@ -313,7 +314,7 @@ export default {
           })
           break;
 
-        case 2: //客服
+        case 4: //客服
           request({
             method: 'GET',
             url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
@@ -326,15 +327,14 @@ export default {
               method: 'GET',
               url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
               params: {
-                source_id: this.source_id,
-                type: 3,
-                
+                firm_id: '26607242283450368',
+                type: 4,
+                me_id: this.myId
               }
             }).then(response => {
               this.records = response.data.data.history.records
               this.people = response.data.data.people
             })
-            
           })
           break;
 
@@ -474,7 +474,8 @@ export default {
           })
           break;
 
-          case 2: //客服
+          case 4: //客服
+          //TODO:modify
           request({
             method: 'GET',
             url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
@@ -554,13 +555,13 @@ export default {
             this.people = response.data.data.people
           })
           break;
-        case 2: //客服
+        case 4: //客服
           request({
             method: 'GET',
             url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
             params: {
-              source_id: this.source_id,
-              type: 3,
+              firm_id: '26607242283450368',
+              type: 4,
               me_id: this.myId
             }
           }).then(response => {

@@ -1,6 +1,6 @@
 <template> 
   <div class="information" >
-    <div class="group" v-if="type == 3">
+    <!-- <div class="group" v-if="type == 3">
       <div class="profile group">
         <div class="photo clear">
           <img :src="imgURL($store.state.otherPart.profileImg)" alt="">
@@ -171,7 +171,7 @@
         </div>
       </div>
     </div>
-    
+     -->
   </div>
 </template>
 

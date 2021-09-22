@@ -52,10 +52,6 @@ export default {
         quickReply: this.knowledgeBase[index].theValue,
         type: this.knowledgeBase[index].type  
       })
-      console.log({
-        quickReply: this.knowledgeBase[index].theValue,
-        type: this.knowledgeBase[index].type  
-      });
     }
   },
   mounted () {
