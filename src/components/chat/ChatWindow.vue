@@ -2,7 +2,12 @@
   <div class="window clear">
     <div class="dialogue">
       <div class="chatbox clearfix" ref="chatbox">
-        
+        <div class="more clear">
+          <div v-if="current != 1">
+            <img src="~assets/img/chat/moreHistory.png" alt="">
+            <p @click="more()">查看更多记录</p>
+          </div>
+        </div>
         <div v-for="(record, index) in records" :key="index">
           <div v-if="record != null">
             <div v-if="judgeDirection(record) == 1">
@@ -75,7 +80,7 @@
           <div><img src="~assets/img/chat/history.png" alt=""></div>
           <input type="file" style="display: none" ref="file">
         </div>
-        <textarea cols="30" rows="10" v-model="sendMessage" @keyup.enter="send()"></textarea>
+        <textarea cols="30" rows="10" v-model="sendMessage" @keyup.enter="send()" @focus="input = true" @blur="input = false" @keydown.enter="input = false"></textarea>
         <div class="button clear"><button @click="send()">发送(S)</button></div>
       </div>
     </div>
@@ -155,6 +160,10 @@ export default {
       isQuickReply: false,
       type: 0,
       people: [],
+      current: 0,
+      total: 0,
+      scrollHeight: 0,
+      input: false
     }
   },
   methods: {
@@ -181,7 +190,7 @@ export default {
             return 1
           }
         } else if (this.$store.state.type == 4) {
-          if (record.sendId == this.$store.state.otherPart.clientId) {
+          if (record.sendId != this.$store.state.profile.id) {
             this.isLeft = true
             this.isRight = false
             return 1
@@ -281,7 +290,6 @@ export default {
                 clientId: this.$store.state.otherPart.currentRelative.clientId,
               }
             }).then(response => {
-              
               this.$emit('send')
               request({
                 method: 'GET',
@@ -379,7 +387,7 @@ export default {
             method: 'GET',
             url: 'http://l423145x35.oicp.vip/chatOne/hasReadHistory',
             params: {
-              relative_id: this.$store.state.otherPart.relative,
+              relative_id: this.$store.state.otherPart.selfRelative,
               type: 3
             }
           }).then(response => {
@@ -535,6 +543,69 @@ export default {
           }
         })
       })
+    },
+    more() {
+      if (this.current > 1) {
+        this.current--
+        switch (this.$store.state.type) {
+          case 1: //单聊
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 1,
+                me_id: this.myId,
+                pageNum: this.current
+              }
+            }).then(response => {
+              
+              this.scrollHeight = this.$refs.chatbox.scrollHeight
+              // for (let i = response.data.data.history.records.length; i >= 0; i--) {
+              //   this.records.unshift(response.data.data.history.records[i])
+              //   this.people.unshift(response.data.data.people[i])
+              // }
+              this.current = response.data.data.history.current
+              this.records = response.data.data.history.records.concat(this.records)
+              this.people = response.data.data.people.concat(this.people)
+            })
+            break;
+          case 4: //客服
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                firm_id: '26607242283450368',
+                type: 4,
+                me_id: this.myId,
+                pageNum: this.current
+              }
+            }).then(response => {
+              this.scrollHeight = this.$refs.chatbox.scrollHeight
+              this.current = response.data.data.history.current
+              this.records = response.data.data.history.records.concat(this.records)
+              this.people = response.data.data.people.concat(this.people)
+            })
+            break;
+          case 3: //群聊
+            request({
+              method: 'GET',
+              url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
+              params: {
+                source_id: this.source_id,
+                type: 2,
+                me_id: this.myId,
+                pageNum: this.current
+              }
+            }).then(response => {
+              this.scrollHeight = this.$refs.chatbox.scrollHeight
+              this.current = response.data.data.history.current
+              this.records = response.data.data.history.records.concat(this.records)
+              this.people = response.data.data.people.concat(this.people)
+            })
+            break;
+        }
+      }
     }
   },
   mounted() {
@@ -600,23 +671,25 @@ export default {
             method: 'GET',
             url: 'http://l423145x35.oicp.vip/im-servicechat-history/add',
             params: {
-              relativeId: this.$store.state.otherPart.relative,
+              relativeId: this.$store.state.otherPart.currentRelative.id,
               sendId: this.$store.state.profile.id,
-              agentId: this.$store.state.profile.id,
+              agentId: this.$store.state.otherPart.currentRelative.agentId,
               type: type,
-              serviceKey: this.$store.state.otherPart.linkUser,
+              serviceKey: this.$store.state.otherPart.currentRelative.serviceKey,
               content: content,
               fileName: localName,
-              savePath: fileName                             
+              savePath: fileName,
+              clientId: this.$store.state.otherPart.currentRelative.clientId,
             }
           }).then(response => {
+            console.log(response);
             this.$emit('send')
             request({
               method: 'GET',
               url: 'http://l423145x35.oicp.vip/chat/getThreeChatInfo',
               params: {
-                source_id: this.source_id,
-                type: 3,
+                firm_id: '26607242283450368',
+                type: 4,
                 me_id: this.myId
               }
             }).then(response => {
@@ -670,8 +743,9 @@ export default {
               me_id: this.myId
             }
           }).then(response => {
+            this.current = response.data.data.history.current
+            this.total = response.data.data.history.pages
             this.records = response.data.data.history.records
-            this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
             this.people = response.data.data.people
           })
           break;
@@ -685,8 +759,9 @@ export default {
               me_id: this.myId
             }
           }).then(response => {
+            this.current = response.data.data.history.current
+            this.total = response.data.data.history.pages
             this.records = response.data.data.history.records
-            this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
             this.people = response.data.data.people
           })
           break;
@@ -700,8 +775,9 @@ export default {
               me_id: this.myId
             }
           }).then(response => {
+            this.current = response.data.data.history.current
+            this.total = response.data.data.history.pages
             this.records = response.data.data.history.records
-            this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
             this.people = response.data.data.people
           })
           break;
@@ -709,7 +785,13 @@ export default {
     }
   },
   updated() {
-    this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
+    if (!this.input) {
+      if (this.current == this.total) {
+        this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight
+      } else {
+        this.$refs.chatbox.scrollTop = this.$refs.chatbox.scrollHeight - this.scrollHeight
+      }
+    }
   }
 }
 </script>
@@ -732,6 +814,22 @@ export default {
       height: 450px;
       background: rgb(248, 248, 248);
       overflow: auto;
+      .more {
+        cursor: pointer;
+        width: 100px;
+        text-align: center;
+        margin: 0 auto;
+        img {
+          float: left;
+          width: 12px;
+          margin-right: 5px;
+        }
+        p {
+          float: left;
+          color: #45C4F4;
+          font-size: 12px;
+        }
+      }
     }
     .send {
       padding: 20px 30px 5px 30px;

@@ -373,59 +373,65 @@ export default {
         }
       }).then(response => {
         if (response.data.data.flag == true) {
-
-          for (let i of response.data.data.relation_list) {
-            if (i == this.$store.state.otherPart.relative) { //单聊
-              this.$emit('update', '')
-            }
-          }
-          if (response.data.data.relation_list.length != 0) {
-            this.friendListUpdate()
-          }
-
-          for (let i of response.data.data.group_relation) { //群聊
-            if (i == this.$store.state.otherPart.relative) {
-              this.$emit('update', '')
-            }
-          }
-          if (response.data.data.group_relation.length != 0) {
-            this.groupListUpdate()
-          }
-
           let onlineBroadcast = []
-          let serveBroadcast = []
-          let transferBroadcast = []
-          for (let i of response.data.data.broadcast) {
-            if (i.type == 1) {
-              onlineBroadcast.push(i)
-            } else if (i.type == 5) { //有客服消息
-              serveBroadcast.push(i)
-            } else if (i.type == 4) { //客服转接
-              transferBroadcast.push(i)
-            }
-          }
-          if (this.$store.state.type == 4) {
-            this.$emit('update', '')
-          }
-          if (serveBroadcast.length != 0) {
-            this.serviceListUpdate()
-          }
-          if (transferBroadcast.length != 0) {
-            if (this.$store.state.type == 4) {
-              request({
-                method: 'GET',
-                url: 'http://l423145x35.oicp.vip/im-servicechat-relation/clinetCreateRelation',
-                params: {
-                  client_id: this.$store.state.profile.id,
-                  firm_id: '26607242283450368'
-                }
-              }).then(response => {
-                this.serviceListUpdate()
+          if (this.$route.path.indexOf('chat') != -1) {
+            for (let i of response.data.data.relation_list) {
+              if (i == this.$store.state.otherPart.relative) { //单聊
                 this.$emit('update', '')
-              })
+              }
+            }
+            if (response.data.data.relation_list.length != 0) {
+              this.friendListUpdate()
+            }
+
+            for (let i of response.data.data.group_relation) { //群聊
+              if (i == this.$store.state.otherPart.relative) {
+                this.$emit('update', '')
+              }
+            }
+            if (response.data.data.group_relation.length != 0) {
+              this.groupListUpdate()
+            }
+
+            
+            let serveBroadcast = []
+            let transferBroadcast = []
+            for (let i of response.data.data.broadcast) {
+              if (i.type == 1 || i.type == 2) {
+                onlineBroadcast.push(i)
+              } else if (i.type == 5) { //有客服消息
+                serveBroadcast.push(i)
+              } else if (i.type == 4) { //客服转接
+                transferBroadcast.push(i)
+              }
+            }
+
+            
+            if (serveBroadcast.length != 0) {
+              if (this.$store.state.type == 4) {
+                this.$emit('update', '')
+              }
+              this.serviceListUpdate()
+            }
+            if (transferBroadcast.length != 0) {
+              if (this.$store.state.type == 4) {
+                request({
+                  method: 'GET',
+                  url: 'http://l423145x35.oicp.vip/im-servicechat-relation/clinetCreateRelation',
+                  params: {
+                    client_id: this.$store.state.profile.id,
+                    firm_id: '26607242283450368'
+                  }
+                }).then(response => {
+                  this.serviceListUpdate()
+                  this.$emit('update', '')
+                })
+              }
             }
           }
-          this.$emit('prompt', onlineBroadcast)
+          if (onlineBroadcast.length != 0) {
+            this.$emit('prompt', onlineBroadcast)
+          }
         }
       }).catch((err) => {
         clearInterval(this.intervalNum)

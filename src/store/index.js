@@ -8,7 +8,7 @@ export default new Vuex.Store({
   state: {
     profile: {},
     otherPart: {},
-    type: 1
+    type: -1
   },
   mutations: {
     setProfile(state, profile) {

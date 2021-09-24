@@ -61,6 +61,7 @@ export default {
 
 <style lang="less" scoped>
   .prompt {
+    z-index: 20;
     width: 300px;
     height: 100px;
     position: fixed;
